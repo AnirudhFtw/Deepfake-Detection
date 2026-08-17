@@ -1,0 +1,11 @@
+@"
+__pycache__/
+*.pyc
+*.npy
+*.pth
+*.pt
+*.mp4
+*.jpg
+*.jpeg
+*.png
+"@ | Out-File -Encoding utf8 .gitignore
