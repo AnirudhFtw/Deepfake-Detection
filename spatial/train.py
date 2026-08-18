@@ -17,8 +17,8 @@ from tqdm import tqdm
 
 from config import SPATIAL_DIR, SPLITS_DIR
 from splits import load_split_keys, indices_for_keys
-from dataset import DeepfakeDataset
-from utils import seed_everything, AverageMeter, calculate_accuracy, save_checkpoint
+from common.dataset import DeepfakeDataset
+from common.utils import seed_everything, AverageMeter, calculate_accuracy, save_checkpoint
 from model import DeepfakeResNet
 
 # ===========================

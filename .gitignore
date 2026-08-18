@@ -1,4 +1,3 @@
-@"
 __pycache__/
 *.pyc
 *.npy
@@ -8,4 +7,3 @@ __pycache__/
 *.jpg
 *.jpeg
 *.png
-"@ | Out-File -Encoding utf8 .gitignore

@@ -33,12 +33,9 @@ videos.
   train/val/test split, written once and shared by every domain, so
   spatial, frequency, and eventually temporal results are comparable and
   fusion is trained/evaluated on matching data.
-- [ ] Retire the superseded root-level scripts (`extract_frames.py`,
-  `extract_faces.py`, `preprocess_faces.py`, `apply_dct.py`,
-  `create_rgb_dataset.py`, `initialdatasetsplit.py`, `preprocessing/`)
-  once `pipeline/` has been run end-to-end and validated against real
-  data — left in place for now since they haven't been runtime-verified
-  in this environment (no `cv2`/`torch`/dataset available here).
+- [x] Archive superseded root-level prototype scripts in `legacy/`; the
+  current preprocessing and branch entry points now live only in
+  `pipeline/`, `spatial/`, and `frequency/`.
 
 ## Phase 1 — Fix the frequency branch's input representation
 

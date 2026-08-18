@@ -23,7 +23,7 @@ from sklearn.metrics import (
 
 from config import SPATIAL_DIR, SPLITS_DIR
 from splits import load_split_keys, indices_for_keys
-from dataset import DeepfakeDataset
+from common.dataset import DeepfakeDataset
 from model import DeepfakeResNet
 
 MODEL_PATH = "../checkpoints/spatial_best.pth"

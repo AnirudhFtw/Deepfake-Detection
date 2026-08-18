@@ -4,6 +4,31 @@ A face-forgery detection system that classifies videos as real or fake by
 combining evidence from more than one representation of the same footage,
 instead of relying on a single CNN staring at raw pixels.
 
+## How to read this repository
+
+Read it in this order:
+
+1. This file explains the model and experiment goals.
+2. `pipeline/` is the entry point: it turns raw videos into spatial and
+   frequency tensors with one shared, video-level split.
+3. `spatial/` and `frequency/` are the two runnable training branches.
+4. `common/` contains the dataset and training utilities both branches use.
+5. `temporal/` contains the untrained attention-pooling interface for the
+   future temporal branch.
+
+```
+common/       shared dataset and training helpers
+pipeline/     dataset selection, preprocessing, and split generation
+spatial/      RGB classifier: train.py, test.py, model.py
+frequency/    block-DCT classifier: train.py, test.py, model.py
+temporal/     planned temporal aggregation interface
+legacy/       superseded prototype scripts; do not use for new runs
+tasks/        implementation roadmap
+```
+
+For the first experiment, follow [CODEX_IMPLEMENTATION.md](CODEX_IMPLEMENTATION.md):
+FaceForensics++ for training, then all of Celeb-DF for evaluation.
+
 ## Background
 
 Frame-level RGB classifiers (a CNN looking at a cropped face) plateau
@@ -62,23 +87,19 @@ video → face detection & tracking → aligned face crops (per frame)
 ### Spatial branch (implemented)
 ResNet18, ImageNet-pretrained, final FC replaced with `Dropout(0.5) →
 Linear(2)`. Operates on face crops resized to 224×224, normalized to
-[-1, 1]. See `model.py`.
+[-1, 1]. See `spatial/model.py`.
 
 ### Frequency branch (implemented, standalone — not yet fused)
-Per-channel 2D DCT of the processed RGB face crop (`apply_dct.py`),
-currently trained through the same ResNet18 architecture as its own
-separate model. This branch mines spectral artifacts (upsampling
+Per-channel block-wise 8×8 DCT of the processed RGB face crop, trained by a
+small CNN from scratch. This branch mines spectral artifacts (upsampling
 signatures, GAN fingerprints, compression-noise mismatches) that are
-invisible in RGB.
+invisible in RGB. See `pipeline/build_frequency_domain.py` and
+`frequency/model.py`.
 
 ### Temporal branch (planned)
-Not yet implemented. `predict_video.py` currently aggregates video-level
-predictions by averaging per-frame fake-probabilities — a static heuristic,
-not a learned temporal signal. The plan is a lightweight temporal
-aggregator (attention pooling or a shallow transformer) over the sequence
-of per-frame embeddings already produced by the spatial/frequency branches,
-so no new heavy per-frame feature extractor is needed — see
-[Roadmap](#roadmap).
+Not yet trained. `temporal/model.py` defines lightweight attention pooling
+over per-frame embeddings from the spatial/frequency branches, avoiding a
+separate 3D-CNN pass over raw frames.
 
 ### Fusion (planned)
 The two-branch and eventual three-branch outputs need a shared fusion head;
@@ -89,17 +110,15 @@ combined decision. See [Roadmap](#roadmap) for the concrete plan.
 
 | Stage | Script | Notes |
 |---|---|---|
-| Video sampling | `initialdatasetsplit.py`, `preprocessing/split_dataset.py` | Selects a bounded subset of videos per manipulation category |
-| Frame extraction | `extract_frames.py`, `preprocessing/extract_frames.py` | OpenCV frame dump |
-| Face detection & crop | `extract_faces.py`, `preprocessing/detect_faces.py` | MTCNN, adaptive context margin |
-| Normalization | `preprocess_faces.py` | Resize 224×224, RGB, scale to [-1, 1] |
-| Frequency transform | `apply_dct.py` | Per-channel 2D DCT |
-| Tensor packaging | `create_rgb_dataset.py` | Bundles `.npy` frames into a `.pt` dataset |
-| Training | `train.py` | Video-level 80/20 split, Adam + `ReduceLROnPlateau` |
-| Evaluation | `test.py` | Accuracy, precision, recall, F1, AUC, confusion matrix |
-| Inference | `predict_video.py` | End-to-end video → REAL/FAKE + confidence |
+| Video sampling | `pipeline/select_videos.py` | Selects a bounded number of videos per class |
+| Frame extraction | `pipeline/extract_frames.py` | Uniformly samples 32 frames per video |
+| Face detection & crop | `pipeline/extract_faces.py` | MTCNN with adaptive context margin |
+| Spatial transform | `pipeline/build_spatial_domain.py` | RGB tensors normalized to [-1, 1] |
+| Frequency transform | `pipeline/build_frequency_domain.py` | Block-DCT tensors normalized to [-1, 1] |
+| Shared split | `pipeline/split_dataset.py` | Video-level FF++ official split or seeded fallback |
+| Training/evaluation | `spatial/`, `frequency/` | Independent branch scripts, video-level testing |
 
-`DeepfakeDataset` (`dataset.py`) indexes samples per-video, which is what
+`DeepfakeDataset` (`common/dataset.py`) indexes samples per-video, which is what
 makes the video-level train/val split possible — frames from the same
 video never leak across the split.
 
@@ -111,45 +130,35 @@ Dependencies (no `requirements.txt` yet — inferred from imports):
 torch torchvision opencv-python mtcnn numpy tqdm scikit-learn pandas
 ```
 
-Paths across the scripts are currently hardcoded per environment
-(Colab `/content/...`, Windows `C:\Honours\...`, relative `../...`) —
-edit the `Configuration` block at the top of each script before running it.
-
-For the FaceForensics++ → Celeb-DF protocol and the dataset-safety changes,
-see [CODEX_IMPLEMENTATION.md](CODEX_IMPLEMENTATION.md).
+Configure your dataset paths in `pipeline/config.py`. Run preprocessing from
+`pipeline/`, then run the selected branch's `train.py` or `test.py` from its
+own directory.
 
 ## Current Status & Results
 
 - Spatial (RGB) and frequency (DCT) branches train and evaluate
   independently; no fused multi-branch model exists yet.
-- Temporal modeling is not implemented — video-level prediction is a mean
-  of per-frame probabilities.
+- Temporal modeling is scaffolded but not trained.
 - No cross-dataset or cross-manipulation evaluation has been run; `test.py`
-  evaluates on a held-out split of the same source distribution as
-  training.
+  can evaluate either the held-out split or, with `--all-videos`, an entirely
+  held-out dataset.
 - *(Fill in once available: in-domain accuracy/AUC per branch, and, once a
   held-out second dataset is used, the cross-dataset AUC — this second
   number is the one that actually matters for the write-up.)*
 
 ## Roadmap
 
-1. **Fix the frequency branch's input representation** before fusing it
-   with anything — full-image 2D DCT breaks the shift-invariance/locality
-   a CNN backbone needs, and doesn't match the ImageNet statistics its
-   pretrained weights expect. Move to block-wise (8×8, JPEG-style) DCT or
-   frequency-band decomposition, and stop initializing it from ImageNet
-   pretrained weights.
-2. **Add the temporal branch** as an attention-pooling or shallow
+1. **Add the temporal branch** as an attention-pooling or shallow
    transformer layer over per-frame embeddings already produced by the
    spatial/frequency CNNs — this avoids a separate, expensive 3D-CNN
    pass over raw frames.
-3. **Fuse**, starting with concatenation + a small MLP head before
+2. **Fuse**, starting with concatenation + a small MLP head before
    reaching for cross-attention fusion — simpler fusion has matched
    cross-attention fusion in the literature when the branches already
    encode distinct information.
-4. **Evaluate cross-dataset**, not just cross-video-split — train on one
+3. **Evaluate cross-dataset**, not just cross-video-split — train on one
    dataset, report AUC on a completely held-out second dataset.
-5. **Add data augmentation** (compression, blur, noise, resize) — this has
+4. **Add data augmentation** (compression, blur, noise, resize) — this has
    moved the needle on generalization more than architecture choice in
    recent ablations.
 
