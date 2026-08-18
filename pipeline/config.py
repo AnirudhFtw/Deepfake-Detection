@@ -22,6 +22,10 @@ CATEGORY_MAP = {
 
 NUM_VIDEOS_PER_CLASS = 1000  # capped to however many videos actually exist
 
+# Set this to FaceForensics++'s official ``splits/`` directory when training
+# on FF++.  Leave it as None for datasets without official splits.
+FFPP_SPLITS_DIR = None
+
 # ============================================================
 # Output layout
 # ============================================================

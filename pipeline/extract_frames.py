@@ -59,7 +59,7 @@ def main():
         rows = list(csv.DictReader(f))
 
     for row in tqdm(rows, desc="Extracting frames"):
-        saved = extract_video(row["video_path"], row["label"], row["video_name"])
+        saved = extract_video(row["video_path"], row["label"], row["video_id"])
         if saved == 0:
             print(f"[WARN] No frames extracted for {row['video_path']}")
 

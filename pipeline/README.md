@@ -9,7 +9,8 @@ train and evaluate on the same videos.
 ## Usage
 
 1. Edit `config.py` — set `RAW_DATASET_DIR`, `CATEGORY_MAP` to match your
-   dataset's folder layout, and `NUM_VIDEOS_PER_CLASS`.
+   dataset's folder layout, and `NUM_VIDEOS_PER_CLASS`. For FaceForensics++,
+   also set `FFPP_SPLITS_DIR` to its official `splits/` directory.
 2. From inside this directory:
 
 ```bash
@@ -32,7 +33,7 @@ python split_dataset.py          # -> ../processed/splits/{train,val,test}.json
 
 ```
 processed/
-├── manifest.csv          # selected videos: category, label, video_name, video_path
+├── manifest.csv          # selected videos, including a globally unique video_id
 ├── frames/<label>/<video>/frame_00000.jpg, ...
 ├── faces/<label>/<video>/frame_00000.jpg, ...     (cropped, MTCNN + bbox reuse)
 ├── spatial/<label>/<video>/frame_00000.npy, ...   (RGB, [-1, 1])

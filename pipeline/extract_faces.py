@@ -59,9 +59,8 @@ def process_video(video_dir, out_dir):
             continue
 
         if i % FACE_DETECT_EVERY_N == 0 or last_box is None:
-            box = detect_box(frame)
-            if box is not None:
-                last_box = box
+            last_box = detect_box(frame)
+            box = last_box
         else:
             box = last_box
 

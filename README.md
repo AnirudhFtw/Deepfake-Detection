@@ -115,6 +115,9 @@ Paths across the scripts are currently hardcoded per environment
 (Colab `/content/...`, Windows `C:\Honours\...`, relative `../...`) —
 edit the `Configuration` block at the top of each script before running it.
 
+For the FaceForensics++ → Celeb-DF protocol and the dataset-safety changes,
+see [CODEX_IMPLEMENTATION.md](CODEX_IMPLEMENTATION.md).
+
 ## Current Status & Results
 
 - Spatial (RGB) and frequency (DCT) branches train and evaluate

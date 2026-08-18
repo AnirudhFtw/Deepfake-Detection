@@ -23,6 +23,12 @@ def list_videos(folder):
     )
 
 
+def video_id(category, filename):
+    """Stable, output-safe ID that cannot collide across source folders."""
+    category_id = category.replace("/", "__").replace("\\", "__")
+    return f"{category_id}__{os.path.splitext(filename)[0]}"
+
+
 def main():
     random.seed(SEED)
 
@@ -41,6 +47,7 @@ def main():
                 "category": category,
                 "label": label,
                 "video_name": os.path.splitext(video)[0],
+                "video_id": video_id(category, video),
                 "video_path": os.path.join(category_path, video),
             })
 
@@ -48,7 +55,7 @@ def main():
 
     with open(MANIFEST_PATH, "w", newline="") as f:
         writer = csv.DictWriter(
-            f, fieldnames=["category", "label", "video_name", "video_path"]
+            f, fieldnames=["category", "label", "video_name", "video_id", "video_path"]
         )
         writer.writeheader()
 
